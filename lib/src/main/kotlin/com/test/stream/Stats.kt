@@ -8,41 +8,70 @@ import kotlinx.coroutines.selects.select
 import java.util.*
 
 class Stats(private val timeWindow: TimeWindow, private val time: Time) {
-    private var total = 0
+    private var total: Int = 0
+    private var sumX: Double = 0.0
+    private var sumY: Long = 0L
     private var treeMap = TreeMap<Long, Event>()
-    private val eventChannel = Channel<Set<Event>>()
-    private val cleanupChannel = Channel<Unit>()
+    private val writes = Channel<EventRecordOperation>()
+    private val reads = Channel<ReadStatsOperation>()
+    private val cleanups = Channel<Unit>()
 
     init {
         GlobalScope.launch {
             while (true) {
                 select<Unit> {
-                    eventChannel.onReceive { events ->
-                        treeMap.putAll(events.map { it.occurredOn to it })
-                        events.forEach { _ ->
-                            total += 1
-                        }
+                    writes.onReceive { operation ->
+                        onEventsReceived(operation.events)
+                        operation.response.send(true)
                     }
-                    cleanupChannel.onReceive {
-                        val toBeRemoved = treeMap.headMap(time.now() - timeWindow.durationInMillis())
-                        toBeRemoved.forEach { _ -> total -= 1 }
-                        toBeRemoved.clear()
+                    reads.onReceive { operation ->
+                        val result = StatsResult(total, sumX, sumY)
+                        operation.response.send(result)
+                    }
+                    cleanups.onReceive {
+                        onCleanupTriggered()
                     }
                 }
             }
         }
         GlobalScope.launch {
             delay(1000)
-            cleanupChannel.send(Unit)
+            cleanups.send(Unit)
         }
     }
 
-    fun total(): Int {
-        return total
-    }
-
     suspend fun record(events: Set<Event>): Stats {
-        eventChannel.send(events)
+        val response = Channel<Boolean>()
+        writes.send(EventRecordOperation(events, response))
+        response.receive()
         return this
     }
+
+    suspend fun read(): StatsResult {
+        val response = Channel<StatsResult>()
+        reads.send(ReadStatsOperation(response))
+        return response.receive()
+    }
+
+    private fun onCleanupTriggered() {
+        val toBeRemoved = treeMap.headMap(time.now() - timeWindow.durationInMillis())
+        toBeRemoved.forEach { entry ->
+            total -= 1
+            sumX -= entry.value.x
+            sumY -= entry.value.y
+        }
+        toBeRemoved.clear()
+    }
+
+    private fun onEventsReceived(events: Set<Event>) {
+        treeMap.putAll(events.map { it.occurredOn to it })
+        events.forEach { event ->
+            total += 1
+            sumX += event.x
+            sumY += event.y
+        }
+    }
+
+    data class EventRecordOperation(val events: Set<Event>, val response: Channel<Boolean>)
+    data class ReadStatsOperation(val response: Channel<StatsResult>)
 }
