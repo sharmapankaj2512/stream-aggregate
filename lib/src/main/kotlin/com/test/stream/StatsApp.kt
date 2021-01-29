@@ -3,6 +3,8 @@ package com.test.stream
 import com.test.stream.domain.Stats
 import com.test.stream.domain.Time
 import com.test.stream.domain.TimeWindow
+import com.test.stream.infrastructure.eventsRouting
+import com.test.stream.infrastructure.statsRouting
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.routing.*
@@ -28,8 +30,12 @@ fun Application.registerRoutes(stats: Stats) {
     }
 }
 
-fun main(args: Array<String>) {
-    embeddedServer(Netty, 8080, watchPaths = listOf("StatsAppKt"), module = Application::main)
+fun main() {
+    embeddedServer(
+        factory = Netty,
+        port = 8080,
+        watchPaths = listOf("StatsAppKt"),
+        module = Application::main)
         .start(true)
 }
 

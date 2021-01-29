@@ -1,4 +1,4 @@
-package com.test.stream
+package com.test.stream.infrastructure
 
 import com.test.stream.domain.Stats
 import io.ktor.application.*

@@ -1,11 +1,12 @@
-package com.test.stream
+package com.test.stream.infrastructure
 
+import com.test.stream.main
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class StatsRouteTest {
+class RoutesTest {
     @Test
     fun testStatsAreCreated() {
         withTestApplication({ main() }) {
