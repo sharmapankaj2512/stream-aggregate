@@ -2,6 +2,6 @@
 
 `make test`
 
-#### STARt APPLICATION
+#### START APPLICATION
 
-`make run`
+`make run` (Runs on port 8080)
