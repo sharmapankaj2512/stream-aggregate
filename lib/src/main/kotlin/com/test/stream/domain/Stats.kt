@@ -1,4 +1,4 @@
-package com.test.stream
+package com.test.stream.domain
 
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.Channel
@@ -11,10 +11,10 @@ class Stats(private val timeWindow: TimeWindow, private val time: Time) {
     private var total: Int = 0
     private var sumX: Double = 0.0
     private var sumY: Long = 0L
-    private var treeMap = TreeMap<Long, Event>()
+    private var events: MutableList<Event> = mutableListOf()
     private val writes = Channel<EventRecordOperation>()
     private val reads = Channel<ReadStatsOperation>()
-    private val cleanups = Channel<Unit>()
+    private val cleanups = Channel<Channel<Unit>>()
 
     init {
         GlobalScope.launch {
@@ -28,15 +28,20 @@ class Stats(private val timeWindow: TimeWindow, private val time: Time) {
                         val result = StatsResult(total, sumX, sumY)
                         operation.response.send(result)
                     }
-                    cleanups.onReceive {
+                    cleanups.onReceive { operation ->
                         onCleanupTriggered()
+                        operation.send(Unit)
                     }
                 }
             }
         }
         GlobalScope.launch {
-            delay(1000)
-            cleanups.send(Unit)
+            while (true) {
+                val response = Channel<Unit>()
+                delay(1000)
+                cleanups.send(response)
+                response.receive()
+            }
         }
     }
 
@@ -54,17 +59,19 @@ class Stats(private val timeWindow: TimeWindow, private val time: Time) {
     }
 
     private fun onCleanupTriggered() {
-        val toBeRemoved = treeMap.headMap(time.now() - timeWindow.durationInMillis())
-        toBeRemoved.forEach { entry ->
+        println("Clean up triggered")
+        val allowedThreshold = time.now() - timeWindow.durationInMillis()
+        val toBeRemoved = events.filter { it.occurredOn < allowedThreshold }
+        toBeRemoved.forEach { event ->
             total -= 1
-            sumX -= entry.value.x
-            sumY -= entry.value.y
+            sumX -= event.x
+            sumY -= event.y
         }
-        toBeRemoved.clear()
+        events.removeAll(toBeRemoved)
     }
 
     private fun onEventsReceived(events: Set<Event>) {
-        treeMap.putAll(events.map { it.occurredOn to it })
+        this.events.addAll(events)
         events.forEach { event ->
             total += 1
             sumX += event.x

@@ -1,4 +1,4 @@
-package com.test.stream
+package com.test.stream.domain
 
 enum class TimeWindow(private val duration: Int) {
     Minute(60);

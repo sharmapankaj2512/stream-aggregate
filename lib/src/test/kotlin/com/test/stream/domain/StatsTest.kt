@@ -1,4 +1,4 @@
-package com.test.stream
+package com.test.stream.domain
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -10,7 +10,6 @@ import org.junit.jupiter.params.provider.MethodSource
 class StatsTest {
     class MockTime: Time {
         override fun now(): Long {
-//            return Instant.EPOCH.toEpochMilli()
             return 1580203689000
         }
     }
@@ -39,12 +38,14 @@ class StatsTest {
                 Arguments.of(setOf(Event(1580203689000, 1.1, 2147483647)), 1, 1.1, 2147483647),
                 Arguments.of(setOf(
                     Event(1580203689000, 1.4, 2147483647),
-                    Event(1480203687000, 1.1, 147483647)), 1, 1.4, 2147483647),
+                    Event(1480203687000, 1.1, 147483647)
+                ), 1, 1.4, 2147483647),
                 Arguments.of(setOf(
                     Event(1580203689000, 1.1, 21),
                     Event(1580203699001, 1.1, 21),
                     Event(1580203628999, 1.8, 421),
-                    Event(1480203687000, 4.1, 218)), 2, 2.2, 42),
+                    Event(1480203687000, 4.1, 218)
+                ), 2, 2.2, 42),
             )
         }
     }
