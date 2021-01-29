@@ -2,4 +2,4 @@ test:
 	./gradlew clean build
 
 run:
-	./gralew clean run
+	./gradlew clean run

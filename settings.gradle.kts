@@ -8,4 +8,4 @@
  */
 
 rootProject.name = "com.test.stream"
-include("lib")
+include("app")
