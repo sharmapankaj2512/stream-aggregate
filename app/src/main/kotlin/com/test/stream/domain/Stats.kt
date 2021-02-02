@@ -8,16 +8,15 @@ import kotlinx.coroutines.selects.select
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
-import java.util.*
 
 class Stats(private val reportDuration: Duration, private val clock: Clock) {
     private var total: Int = 0
     private var sumX: Double = 0.0
     private var sumY: Long = 0L
     private var events: MutableList<Event> = mutableListOf()
-    private val writes = Channel<EventRecordOperation>()
-    private val reads = Channel<ReadStatsOperation>()
-    private val cleanups = Channel<Channel<Unit>>()
+    private val writes = Channel<WriteOperation>()
+    private val reads = Channel<ReadOperation>()
+    private val cleanups = Channel<CleanupOperation>()
 
     init {
         GlobalScope.launch {
@@ -25,7 +24,7 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
                 select<Unit> {
                     writes.onReceive { operation ->
                         onEventsReceived(operation.events)
-                        operation.response.send(true)
+                        operation.response.send(Unit)
                     }
                     reads.onReceive { operation ->
                         val result = StatsResult(total, sumX, sumY)
@@ -33,32 +32,31 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
                     }
                     cleanups.onReceive { operation ->
                         onCleanupTriggered()
-                        operation.send(Unit)
+                        operation.response.send(Unit)
                     }
                 }
             }
         }
         GlobalScope.launch {
             while (true) {
-                val response = Channel<Unit>()
-                delay(1000)
-                cleanups.send(response)
-                response.receive()
+                Channel<Unit>().apply {
+                    delay(1000)
+                    cleanups.send(CleanupOperation(this))
+                }.receive()
             }
         }
     }
 
-    suspend fun record(events: Set<Event>): Stats {
-        val response = Channel<Boolean>()
-        writes.send(EventRecordOperation(events, response))
-        response.receive()
-        return this
+    suspend fun record(events: Set<Event>) {
+        Channel<Unit>().apply {
+            writes.send(WriteOperation(events, this))
+        }.receive()
     }
 
     suspend fun read(): StatsResult {
-        val response = Channel<StatsResult>()
-        reads.send(ReadStatsOperation(response))
-        return response.receive()
+        return Channel<StatsResult>().apply {
+            reads.send(ReadOperation(this))
+        }.receive()
     }
 
     private fun onCleanupTriggered() {
@@ -82,6 +80,7 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
         }
     }
 
-    data class EventRecordOperation(val events: Set<Event>, val response: Channel<Boolean>)
-    data class ReadStatsOperation(val response: Channel<StatsResult>)
+    data class WriteOperation(val events: Set<Event>, val response: Channel<Unit>)
+    data class ReadOperation(val response: Channel<StatsResult>)
+    data class CleanupOperation(val response: Channel<Unit>)
 }

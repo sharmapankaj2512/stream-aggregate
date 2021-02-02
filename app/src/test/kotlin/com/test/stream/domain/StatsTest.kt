@@ -16,8 +16,9 @@ class StatsTest {
     @MethodSource("eventSource")
     fun testRow(events: Set<Event>, expectedTotal: Int, expectedSumX: Double, expectedSumY: Long) {
         runBlocking {
-            val stats = Stats(Duration.ofMinutes(1), Clock.fixed(Instant.ofEpochMilli(1580203689000), ZoneId.of("UTC")))
-                .record(events)
+            val clock = Clock.fixed(Instant.ofEpochMilli(1580203689000), ZoneId.of("UTC"))
+            val stats = Stats(Duration.ofMinutes(1), clock)
+            stats.record(events)
 
             delay(2000)
 
