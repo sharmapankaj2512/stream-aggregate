@@ -7,21 +7,18 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
-import java.lang.IndexOutOfBoundsException
-import java.lang.NumberFormatException
+import io.ktor.util.pipeline.*
 
 fun Route.eventsRouting(stats: Stats) {
-     route("/event") {
+    route("/event") {
         post {
             try {
                 val body = call.receive<String>()
                 val events = makeEvents(body)
-                stats.record(events)
-                call.respond(HttpStatusCode.Accepted)
-            } catch (ex: NumberFormatException) {
-                call.respond(HttpStatusCode.BadRequest)
-            } catch (ex: IndexOutOfBoundsException) {
-                call.respond(HttpStatusCode.BadRequest)
+                val validEvents = events.mapNotNull { it.getOrNull() }
+                val invalidEvents = events.mapNotNull { it.exceptionOrNull() }.toList()
+                stats.record(validEvents.toSet())
+                respond(invalidEvents)
             } catch (ex: Throwable) {
                 call.respond(HttpStatusCode.InternalServerError)
             }
@@ -29,9 +26,22 @@ fun Route.eventsRouting(stats: Stats) {
     }
 }
 
-private fun makeEvents(body: String): Set<Event> {
-    return body.split("\n").map {
-        val cells = it.split(",")
-        Event(cells[0].toLong(), cells[1].toDouble(), cells[2].toLong())
-    }.toSet()
+private suspend fun PipelineContext<Unit, ApplicationCall>.respond(
+    invalidEvents: List<Throwable>
+) = when {
+    invalidEvents.isEmpty() ->
+        call.respond(HttpStatusCode.Accepted)
+    else ->
+        call.respond(HttpStatusCode.BadRequest)
+}
+
+
+private fun makeEvents(body: String): Sequence<Result<Event>> {
+    return body.lineSequence().map { line ->
+        runCatching {
+            line.split(",", limit = 3).let { (occurredOn, x, y) ->
+                Event(occurredOn.toLong(), x.toDouble(), y.toLong())
+            }
+        }
+    }
 }
