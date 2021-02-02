@@ -5,9 +5,12 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import java.util.*
 
-class Stats(private val timeWindow: TimeWindow, private val time: Time) {
+class Stats(private val reportDuration: Duration, private val clock: Clock) {
     private var total: Int = 0
     private var sumX: Double = 0.0
     private var sumY: Long = 0L
@@ -60,8 +63,8 @@ class Stats(private val timeWindow: TimeWindow, private val time: Time) {
 
     private fun onCleanupTriggered() {
         println("Clean up triggered")
-        val allowedThreshold = time.now() - timeWindow.durationInMillis()
-        val toBeRemoved = events.filter { it.occurredOn < allowedThreshold }
+        val allowedThreshold = clock.instant().minusMillis(reportDuration.toMillis())
+        val toBeRemoved = events.filter { Instant.ofEpochMilli(it.occurredOn).isBefore(allowedThreshold) }
         toBeRemoved.forEach { event ->
             total -= 1
             sumX -= event.x

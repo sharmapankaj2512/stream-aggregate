@@ -1,8 +1,6 @@
 package com.test.stream
 
 import com.test.stream.domain.Stats
-import com.test.stream.domain.Time
-import com.test.stream.domain.TimeWindow
 import com.test.stream.infrastructure.eventsRouting
 import com.test.stream.infrastructure.statsRouting
 import io.ktor.application.*
@@ -11,7 +9,8 @@ import io.ktor.routing.*
 import io.ktor.serialization.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
-import java.time.Instant
+import java.time.Clock
+import java.time.Duration
 
 fun Application.main() {
     install(DefaultHeaders)
@@ -20,7 +19,7 @@ fun Application.main() {
         json()
     }
 
-    registerRoutes(Stats(TimeWindow.Minute, EpochTime()))
+    registerRoutes(Stats(Duration.ofMinutes(1), Clock.systemUTC()))
 }
 
 fun Application.registerRoutes(stats: Stats) {
@@ -37,10 +36,4 @@ fun main() {
         watchPaths = listOf("StatsAppKt"),
         module = Application::main)
         .start(true)
-}
-
-class EpochTime: Time {
-    override fun now(): Long {
-        return Instant.now().toEpochMilli()
-    }
 }

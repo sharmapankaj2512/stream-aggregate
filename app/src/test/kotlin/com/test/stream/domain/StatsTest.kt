@@ -6,19 +6,17 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 
 class StatsTest {
-    class MockTime: Time {
-        override fun now(): Long {
-            return 1580203689000
-        }
-    }
-
     @ParameterizedTest
     @MethodSource("eventSource")
     fun testRow(events: Set<Event>, expectedTotal: Int, expectedSumX: Double, expectedSumY: Long) {
         runBlocking {
-            val stats = Stats(TimeWindow.Minute, MockTime())
+            val stats = Stats(Duration.ofMinutes(1), Clock.fixed(Instant.ofEpochMilli(1580203689000), ZoneId.of("UTC")))
                 .record(events)
 
             delay(2000)
