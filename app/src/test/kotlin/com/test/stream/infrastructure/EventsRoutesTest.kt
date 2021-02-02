@@ -10,7 +10,7 @@ class EventsRoutesTest {
     @Test
     fun shouldReturnBadRequestWhenInformationIsMissing() {
         withTestApplication({ main() }) {
-            with(handleRequest(HttpMethod.Post, "/event") {
+            with(handleRequest(HttpMethod.Post, "/events") {
                 addHeader(HttpHeaders.ContentType, ContentType.Text.CSV.toString())
                 setBody("1607341341814,0.0442672968,")
             }) {
@@ -22,7 +22,7 @@ class EventsRoutesTest {
     @Test
     fun shouldReturnBadRequestWhenCsvIsInValid() {
         withTestApplication({ main() }) {
-            with(handleRequest(HttpMethod.Post, "/event") {
+            with(handleRequest(HttpMethod.Post, "/events") {
                 addHeader(HttpHeaders.ContentType, ContentType.Text.CSV.toString())
                 setBody("1607341341814")
             }) {

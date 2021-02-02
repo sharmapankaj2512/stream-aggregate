@@ -10,7 +10,7 @@ class RoutesTest {
     @Test
     fun testStatsAreCreated() {
         withTestApplication({ main() }) {
-            with(handleRequest(HttpMethod.Post, "/event") {
+            with(handleRequest(HttpMethod.Post, "/events") {
                 addHeader(HttpHeaders.ContentType, ContentType.Text.CSV.toString())
                 setBody("1607341341814,0.0442672968,1282509067\n" +
                         "1607341339814,0.0473002568,1785397644\n" +

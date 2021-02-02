@@ -10,7 +10,7 @@ import io.ktor.routing.*
 import io.ktor.util.pipeline.*
 
 fun Route.eventsRouting(stats: Stats) {
-    route("/event") {
+    route("/events") {
         post {
             try {
                 val body = call.receive<String>()
