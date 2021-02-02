@@ -20,6 +20,23 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
     private val cleanups = Channel<CleanupOperation>(BUFFER_SIZE)
 
     init {
+        startStateChangeListener()
+        triggerPeriodicCleanUp(Duration.ofSeconds(1))
+    }
+
+    suspend fun record(events: Set<Event>) {
+        Channel<Unit>().apply {
+            writes.send(WriteOperation(events, this))
+        }.receive()
+    }
+
+    suspend fun read(): StatsResult {
+        return Channel<StatsResult>().apply {
+            reads.send(ReadOperation(this))
+        }.receive()
+    }
+
+    private fun startStateChangeListener() {
         GlobalScope.launch {
             while (true) {
                 select<Unit> {
@@ -38,26 +55,17 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
                 }
             }
         }
+    }
+
+    private fun triggerPeriodicCleanUp(duration: Duration) {
         GlobalScope.launch {
             while (true) {
                 Channel<Unit>().apply {
-                    delay(1000)
+                    delay(duration.toMillis())
                     cleanups.send(CleanupOperation(this))
                 }.receive()
             }
         }
-    }
-
-    suspend fun record(events: Set<Event>) {
-        Channel<Unit>().apply {
-            writes.send(WriteOperation(events, this))
-        }.receive()
-    }
-
-    suspend fun read(): StatsResult {
-        return Channel<StatsResult>().apply {
-            reads.send(ReadOperation(this))
-        }.receive()
     }
 
     private fun onCleanupTriggered() {
