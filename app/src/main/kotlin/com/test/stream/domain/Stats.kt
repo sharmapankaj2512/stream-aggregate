@@ -14,9 +14,10 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
     private var sumX: Double = 0.0
     private var sumY: Long = 0L
     private var events: MutableList<Event> = mutableListOf()
-    private val writes = Channel<WriteOperation>()
-    private val reads = Channel<ReadOperation>()
-    private val cleanups = Channel<CleanupOperation>()
+
+    private val writes = Channel<WriteOperation>(BUFFER_SIZE)
+    private val reads = Channel<ReadOperation>(BUFFER_SIZE)
+    private val cleanups = Channel<CleanupOperation>(BUFFER_SIZE)
 
     init {
         GlobalScope.launch {
@@ -83,4 +84,8 @@ class Stats(private val reportDuration: Duration, private val clock: Clock) {
     data class WriteOperation(val events: Set<Event>, val response: Channel<Unit>)
     data class ReadOperation(val response: Channel<StatsResult>)
     data class CleanupOperation(val response: Channel<Unit>)
+
+    companion object {
+        private const val BUFFER_SIZE = 1024
+    }
 }
