@@ -1,6 +1,6 @@
 ### Stream Aggregate
 
-*stream-aggregate* is a simple application build using Ktor. It demonstrates how channels and coroutines can be used to build real time dashboards from an event stream.
+*stream-aggregate* is a simple application built using Ktor. It demonstrates how channels and coroutines can be used to build real time dashboards from an event stream.
 
 #### RUN TESTS
 
